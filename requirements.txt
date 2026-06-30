@@ -1,0 +1,10 @@
+flask
+torch
+torchvision
+mediapipe
+opencv-python
+numpy
+sounddevice
+onnxruntime
+sherpa-onnx
+ultralytics

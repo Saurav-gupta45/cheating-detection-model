@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ProctorAI — AI-Powered Real-Time Exam Proctoring">
+    <title>ProctorAI — Live Session</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=10">
+</head>
+<body>
+
+<!-- ═══════════════ CALIBRATION: VOICE ═══════════════ -->
+<div class="overlay" id="calibration-overlay">
+    <div class="overlay-card">
+        <div class="overlay-icon">🎙️</div>
+        <h2 class="overlay-title">Voice Calibration</h2>
+        <p class="overlay-sub">Please speak normally to enroll your voiceprint.</p>
+        <div class="overlay-script">
+            <p>"The quick brown fox jumps over the lazy dog.</p>
+            <p>One, two, three, four, five, six, seven, eight, nine, ten.</p>
+            <p>I am calibrating my voice print for ProctorAI."</p>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="calibration-progress-fill"></div>
+        </div>
+        <span class="progress-pct" id="calibration-percent">0%</span>
+        <p class="overlay-note" id="calibration-note">Waiting for face detection...</p>
+    </div>
+</div>
+
+<!-- ═══════════════ CALIBRATION: GAZE ═══════════════ -->
+<div class="overlay hidden" id="gaze-calibration-overlay">
+    <div class="overlay-card" style="max-width:600px">
+        <div class="overlay-icon">👁️</div>
+        <h2 class="overlay-title">Gaze Calibration</h2>
+        <p class="overlay-sub">Follow the <strong style="color:#22c55e">green dot</strong> with your eyes as it moves.</p>
+        <p class="overlay-note" style="margin-top:4px;">Keep your head still — only move your eyes.</p>
+        <div class="progress-bar" style="margin-top:24px;">
+            <div class="progress-fill" id="gaze-calibration-fill" style="background:linear-gradient(90deg,#22c55e,#4ade80);"></div>
+        </div>
+        <span class="progress-pct" id="gaze-calibration-percent" style="color:#22c55e;">0%</span>
+        <button class="btn-start-gaze" id="gaze-start-btn">Start Gaze Calibration</button>
+    </div>
+    <div class="gaze-dot" id="gaze-dot" style="display:none;"></div>
+</div>
+
+<!-- ═══════════════ TOP NAVBAR ═══════════════ -->
+<header class="topnav" id="topbar">
+    <div class="topnav-left">
+        <div class="app-logo">
+            <div class="app-logo-icon">🛡️</div>
+            <span class="app-logo-text">Proctor<span>AI</span></span>
+        </div>
+        <div class="session-chip" id="session-badge">
+            <span class="chip-dot"></span>
+            Session Active
+        </div>
+    </div>
+
+    <div class="topnav-center">
+        <div class="exam-meta">
+            <span class="exam-name">CS401 — Final Examination</span>
+            <span class="exam-sep">|</span>
+            <span class="exam-timer" id="clock">00:00:00</span>
+        </div>
+    </div>
+
+    <div class="topnav-right">
+        <div class="suspicion-chip" id="suspicion-badge">
+            <span class="suspicion-chip-label">Suspicion</span>
+            <span class="suspicion-chip-val" id="suspicion-value-top">0%</span>
+        </div>
+    </div>
+</header>
+
+<!-- ═══════════════ MAIN LAYOUT ═══════════════ -->
+<main class="workspace">
+
+    <!-- ── Left Column: Video ── -->
+    <section class="video-col">
+        <div class="video-frame" id="video-container">
+            <img src="/video_feed" alt="Live webcam feed" class="video-stream" id="video-feed">
+
+            <!-- Video Overlays -->
+            <div class="vf-top">
+                <div class="live-badge">
+                    <span class="live-pulse"></span>
+                    LIVE
+                </div>
+                <div class="vf-top-right">
+                    <span class="gaze-timer" id="gaze-timer" style="display:none;">
+                        👁️ Off-screen <span id="gaze-timer-value">0.0</span>s
+                    </span>
+                </div>
+            </div>
+
+            <!-- Active Anomaly Banner -->
+            <div class="anomaly-banner" id="anomaly-banner" style="display:none;">
+                <span class="anomaly-banner-icon" id="anomaly-banner-icon">⚠️</span>
+                <span class="anomaly-banner-text" id="anomaly-banner-text">Anomaly detected</span>
+            </div>
+
+            <div class="vf-bottom">
+                <div class="student-chip">
+                    <span class="student-avatar">👤</span>
+                    <span class="student-name">Student Session</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Anomalies Panel (below video) -->
+        <div class="active-anomalies" id="active-anomalies">
+            <div class="anomaly-panel-header">
+                <span class="anomaly-panel-title">⚡ Active Detections</span>
+                <span class="anomaly-count" id="anomaly-count">0 alerts</span>
+            </div>
+            <div class="anomaly-list" id="anomaly-list">
+                <div class="anomaly-empty" id="anomaly-empty">
+                    <span>✅</span> All clear — no anomalies detected
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Right Column: Detection Panel ── -->
+    <aside class="detect-panel" id="detection-panel">
+
+        <!-- Suspicion Gauge -->
+        <div class="gauge-block">
+            <div class="gauge-wrap" id="gauge-ring">
+                <svg viewBox="0 0 120 120" class="gauge-svg">
+                    <defs>
+                        <linearGradient id="gauge-grad-low" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#22c55e"/>
+                            <stop offset="100%" stop-color="#4ade80"/>
+                        </linearGradient>
+                        <linearGradient id="gauge-grad-med" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#f59e0b"/>
+                            <stop offset="100%" stop-color="#fbbf24"/>
+                        </linearGradient>
+                        <linearGradient id="gauge-grad-high" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#ef4444"/>
+                            <stop offset="100%" stop-color="#f87171"/>
+                        </linearGradient>
+                    </defs>
+                    <circle class="gauge-track" cx="60" cy="60" r="52"/>
+                    <circle class="gauge-arc" cx="60" cy="60" r="52" id="gauge-fill"/>
+                </svg>
+                <div class="gauge-inner">
+                    <span class="gauge-num" id="gauge-percent">0</span>
+                    <span class="gauge-unit">%</span>
+                    <span class="gauge-lbl" id="gauge-risk-label">Safe</span>
+                </div>
+            </div>
+            <p class="gauge-caption">Suspicion Level</p>
+        </div>
+
+        <!-- Feature Cards -->
+        <div class="feature-grid" id="feature-cards">
+
+            <div class="feat-card" data-feature="gaze" id="card-gaze">
+                <div class="feat-row">
+                    <div class="feat-left">
+                        <span class="feat-icon">👁️</span>
+                        <div>
+                            <div class="feat-name">Gaze Tracking</div>
+                            <div class="feat-detail" id="detail-gaze">Initializing...</div>
+                        </div>
+                    </div>
+                    <div class="feat-right">
+                        <div class="feat-status-dot" id="dot-gaze"></div>
+                        <label class="tog">
+                            <input type="checkbox" checked data-feature="gaze" class="feature-toggle">
+                            <span class="tog-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feat-card" data-feature="face" id="card-face">
+                <div class="feat-row">
+                    <div class="feat-left">
+                        <span class="feat-icon">👤</span>
+                        <div>
+                            <div class="feat-name">Face Detection</div>
+                            <div class="feat-detail" id="detail-face">Initializing...</div>
+                        </div>
+                    </div>
+                    <div class="feat-right">
+                        <div class="feat-status-dot" id="dot-face"></div>
+                        <label class="tog">
+                            <input type="checkbox" checked data-feature="face" class="feature-toggle">
+                            <span class="tog-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feat-card" data-feature="phone" id="card-phone">
+                <div class="feat-row">
+                    <div class="feat-left">
+                        <span class="feat-icon">📱</span>
+                        <div>
+                            <div class="feat-name">Phone Detection</div>
+                            <div class="feat-detail" id="detail-phone">Initializing...</div>
+                        </div>
+                    </div>
+                    <div class="feat-right">
+                        <div class="feat-status-dot" id="dot-phone"></div>
+                        <label class="tog">
+                            <input type="checkbox" checked data-feature="phone" class="feature-toggle">
+                            <span class="tog-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feat-card" data-feature="light" id="card-light">
+                <div class="feat-row">
+                    <div class="feat-left">
+                        <span class="feat-icon">💡</span>
+                        <div>
+                            <div class="feat-name">Light Monitor</div>
+                            <div class="feat-detail" id="detail-light">Initializing...</div>
+                        </div>
+                    </div>
+                    <div class="feat-right">
+                        <div class="feat-status-dot" id="dot-light"></div>
+                        <label class="tog">
+                            <input type="checkbox" checked data-feature="light" class="feature-toggle">
+                            <span class="tog-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feat-card" data-feature="voice" id="card-voice">
+                <div class="feat-row">
+                    <div class="feat-left">
+                        <span class="feat-icon">🎙️</span>
+                        <div>
+                            <div class="feat-name">Voice Verify</div>
+                            <div class="feat-detail" id="detail-voice">Initializing...</div>
+                        </div>
+                    </div>
+                    <div class="feat-right">
+                        <div class="feat-status-dot" id="dot-voice"></div>
+                        <label class="tog">
+                            <input type="checkbox" checked data-feature="voice" class="feature-toggle">
+                            <span class="tog-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feat-card" data-feature="sound" id="card-sound">
+                <div class="feat-row">
+                    <div class="feat-left">
+                        <span class="feat-icon">🔊</span>
+                        <div>
+                            <div class="feat-name">Sound Monitor</div>
+                            <div class="feat-detail" id="detail-sound">Initializing...</div>
+                        </div>
+                    </div>
+                    <div class="feat-right">
+                        <div class="feat-status-dot" id="dot-sound"></div>
+                        <label class="tog">
+                            <input type="checkbox" checked data-feature="sound" class="feature-toggle">
+                            <span class="tog-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Warning Log -->
+        <div class="warn-log" id="log-panel">
+            <div class="warn-log-head">
+                <span class="warn-log-title">⚠️ Event Log</span>
+                <button class="warn-log-clear" id="log-clear">Clear</button>
+            </div>
+            <div class="warn-log-body" id="log-body">
+                <div class="warn-log-empty" id="log-empty">No warnings yet. System is monitoring...</div>
+            </div>
+        </div>
+
+    </aside>
+</main>
+
+<!-- ═══════════════ CONTROL BAR ═══════════════ -->
+<footer class="ctrl-bar" id="control-bar">
+    <div class="ctrl-group">
+        <button class="ctrl-btn" id="btn-mic" title="Microphone">
+            <span class="ctrl-icon">🎤</span>
+            <span class="ctrl-label">Mic</span>
+        </button>
+        <button class="ctrl-btn" id="btn-camera" title="Camera">
+            <span class="ctrl-icon">📹</span>
+            <span class="ctrl-label">Camera</span>
+        </button>
+    </div>
+
+    <div class="ctrl-group">
+        <button class="ctrl-btn proctor-on active" id="btn-proctor" title="Toggle Proctoring">
+            <span class="ctrl-icon">🛡️</span>
+            <span class="ctrl-label">Proctoring ON</span>
+        </button>
+    </div>
+
+    <div class="ctrl-group">
+        <button class="ctrl-btn" id="btn-logs-toggle" title="Toggle Log Panel">
+            <span class="ctrl-icon">📋</span>
+            <span class="ctrl-label">Logs</span>
+        </button>
+        <button class="ctrl-btn danger" id="btn-end" title="End Session">
+            <span class="ctrl-icon">📞</span>
+            <span class="ctrl-label">End</span>
+        </button>
+    </div>
+</footer>
+
+<script src="/static/js/app.js?v=10"></script>
+</body>
+</html>

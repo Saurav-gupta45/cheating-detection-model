@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Large Model Weights & Data
+artifacts/*.onnx
+artifacts/*.pth
+artifacts/*.pt
+artifacts/*.task
+*.onnx
+*.pth
+*.pt
+*.task
+
+# Logs & Telemetry
+logs/
+*.log
+
+# Build & packaging
+build/
+dist/
+*.egg-info/
+.eggs/

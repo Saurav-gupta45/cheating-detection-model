@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ProctorAI — Secure AI-Powered Exam Authentication">
+    <title>ProctorAI — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-deep:      #020203;
+            --bg-base:      #070710;
+            --bg-elevated:  #0d0d1a;
+            --surface:      rgba(255,255,255,0.04);
+            --surface-hover:rgba(255,255,255,0.07);
+            --border:       rgba(255,255,255,0.08);
+            --border-glow:  rgba(99,102,241,0.4);
+            --primary:      #6366f1;
+            --primary-glow: rgba(99,102,241,0.25);
+            --primary-hover:#818cf8;
+            --accent:       #22c55e;
+            --accent-glow:  rgba(34,197,94,0.2);
+            --text-primary: #f1f0ff;
+            --text-secondary:#9898b8;
+            --text-muted:   #5a5a7a;
+            --destructive:  #ef4444;
+            --radius:       14px;
+            --easing:       cubic-bezier(0.16,1,0.3,1);
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Fira Sans', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        /* ── Animated Background ── */
+        .bg-canvas {
+            position: fixed; inset: 0; z-index: 0;
+            background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(99,102,241,0.15) 0%, transparent 60%),
+                        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(34,197,94,0.06) 0%, transparent 50%),
+                        linear-gradient(180deg, #070710 0%, #020203 100%);
+        }
+
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.12;
+            pointer-events: none;
+            animation: float var(--dur, 18s) ease-in-out infinite alternate;
+        }
+        .blob-1 { width: 500px; height: 500px; background: #6366f1; top: -100px; left: -150px; --dur: 20s; }
+        .blob-2 { width: 350px; height: 350px; background: #22c55e; bottom: -80px; right: -80px; --dur: 15s; animation-delay: -7s; }
+        .blob-3 { width: 280px; height: 280px; background: #818cf8; top: 50%; left: 70%; --dur: 24s; animation-delay: -3s; }
+
+        @keyframes float {
+            from { transform: translate(0,0) scale(1); }
+            to   { transform: translate(30px,40px) scale(1.08); }
+        }
+
+        /* Grid lines overlay */
+        .grid-overlay {
+            position: fixed; inset: 0; z-index: 1; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* ── Layout ── */
+        .page {
+            position: relative; z-index: 2;
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 480px 1fr;
+            grid-template-rows: 1fr;
+            align-items: center;
+            justify-items: center;
+        }
+
+        /* ── Left Branding Panel ── */
+        .brand-panel {
+            grid-column: 1;
+            padding: 48px;
+            max-width: 520px;
+            justify-self: end;
+            padding-right: 80px;
+        }
+
+        .brand-logo {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 48px;
+        }
+        .brand-logo-icon {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 0 30px rgba(99,102,241,0.4);
+        }
+        .brand-logo-text {
+            font-family: 'Fira Code', monospace;
+            font-size: 26px; font-weight: 700;
+            color: var(--text-primary);
+        }
+        .brand-logo-text span { color: var(--primary); }
+
+        .brand-headline {
+            font-size: 42px; font-weight: 700; line-height: 1.15;
+            margin-bottom: 20px;
+            letter-spacing: -0.5px;
+        }
+        .brand-headline .hl { 
+            background: linear-gradient(135deg, #6366f1, #a5b4fc);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .brand-sub {
+            font-size: 16px; color: var(--text-secondary);
+            line-height: 1.7; margin-bottom: 48px;
+        }
+
+        .feature-list {
+            list-style: none; display: flex; flex-direction: column; gap: 16px;
+        }
+        .feature-item {
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px; color: var(--text-secondary);
+            transition: all 0.3s var(--easing);
+        }
+        .feature-item:hover { background: var(--surface-hover); border-color: rgba(99,102,241,0.2); }
+        .feature-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+            flex-shrink: 0;
+        }
+
+        /* Divider */
+        .page-divider {
+            grid-column: 1 / -1;
+            display: none;
+        }
+
+        /* ── Login Card ── */
+        .login-card {
+            grid-column: 2;
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
+            backdrop-filter: blur(20px);
+        }
+
+        .card-header { margin-bottom: 36px; text-align: center; }
+        .card-header h1 {
+            font-size: 26px; font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .card-header p { font-size: 14px; color: var(--text-secondary); }
+
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block;
+            font-size: 12px; font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .form-input-wrap { position: relative; }
+        .form-input-icon {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            font-size: 16px; color: var(--text-muted);
+            pointer-events: none;
+        }
+        .form-input {
+            width: 100%;
+            padding: 14px 16px 14px 44px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-family: 'Fira Sans', sans-serif;
+            font-size: 15px;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.25s, box-shadow 0.25s;
+        }
+        .form-input::placeholder { color: var(--text-muted); }
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .form-row {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 24px;
+        }
+        .form-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .form-check input { accent-color: var(--primary); width: 15px; height: 15px; }
+        .form-check span { font-size: 13px; color: var(--text-secondary); }
+        .form-link { font-size: 13px; color: var(--primary); text-decoration: none; }
+        .form-link:hover { color: var(--primary-hover); }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+            border: none;
+            border-radius: 12px;
+            font-family: 'Fira Sans', sans-serif;
+            font-size: 15px; font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            position: relative; overflow: hidden;
+            transition: all 0.3s var(--easing);
+            box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+        }
+        .btn-login::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: rgba(255,255,255,0.1);
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .btn-login:hover::before { opacity: 1; }
+        .btn-login:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(99,102,241,0.45); }
+        .btn-login:active { transform: translateY(0); }
+
+        .btn-login-text { position: relative; z-index: 1; }
+        .btn-login-loader { display: none; }
+        .btn-login.loading .btn-login-text { display: none; }
+        .btn-login.loading .btn-login-loader { display: inline-block; }
+
+        .divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+        .divider-line { flex: 1; height: 1px; background: var(--border); }
+        .divider-text { font-size: 12px; color: var(--text-muted); }
+
+        .exam-info {
+            padding: 14px 16px;
+            background: rgba(99,102,241,0.08);
+            border: 1px solid rgba(99,102,241,0.15);
+            border-radius: 10px;
+            display: flex; align-items: flex-start; gap: 12px;
+            margin-bottom: 24px;
+        }
+        .exam-info-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .exam-info-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+        .exam-info-text strong { color: var(--text-primary); }
+
+        .status-row {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: var(--text-muted);
+            justify-content: center; margin-top: 24px;
+        }
+        .status-dot-green { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse-green 2s infinite; }
+        @keyframes pulse-green {
+            0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-canvas"></div>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="page">
+        <!-- Left Brand Panel -->
+        <aside class="brand-panel">
+            <div class="brand-logo">
+                <div class="brand-logo-icon">🛡️</div>
+                <span class="brand-logo-text">Proctor<span>AI</span></span>
+            </div>
+
+            <h2 class="brand-headline">
+                Intelligent Exam<br>
+                <span class="hl">Proctoring System</span>
+            </h2>
+            <p class="brand-sub">
+                Real-time AI monitoring powered by computer vision and voice analysis. Ensuring academic integrity at every moment of your exam.
+            </p>
+
+            <ul class="feature-list">
+                <li class="feature-item">
+                    <span class="feature-dot"></span>
+                    👁️ Real-time gaze & attention tracking
+                </li>
+                <li class="feature-item">
+                    <span class="feature-dot"></span>
+                    🎙️ Voice authentication & speaker detection
+                </li>
+                <li class="feature-item">
+                    <span class="feature-dot"></span>
+                    📱 Phone & prohibited object detection
+                </li>
+                <li class="feature-item">
+                    <span class="feature-dot"></span>
+                    👥 Multi-face & environment monitoring
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Login Card -->
+        <main class="login-card">
+            <div class="card-header">
+                <h1>Welcome Back</h1>
+                <p>Sign in to start your proctored session</p>
+            </div>
+
+            <div class="exam-info">
+                <span class="exam-info-icon">📋</span>
+                <div class="exam-info-text">
+                    <strong>CS401 — Final Examination</strong><br>
+                    Duration: 3 hours &nbsp;|&nbsp; Starts: 09:00 AM IST
+                </div>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label" for="email">Student ID / Email</label>
+                    <div class="form-input-wrap">
+                        <span class="form-input-icon">✉️</span>
+                        <input class="form-input" type="text" id="email" placeholder="e.g. 2021CS001 or student@uni.edu" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Exam Access Code</label>
+                    <div class="form-input-wrap">
+                        <span class="form-input-icon">🔑</span>
+                        <input class="form-input" type="password" id="password" placeholder="Enter your access code" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-check">
+                        <input type="checkbox" id="agree" required>
+                        <span>I agree to monitoring terms</span>
+                    </label>
+                    <a href="#" class="form-link">Need help?</a>
+                </div>
+
+                <button class="btn-login" type="submit" id="login-btn">
+                    <span class="btn-login-text">🚀 &nbsp;Enter Exam Room</span>
+                    <span class="btn-login-loader">⏳ &nbsp;Connecting...</span>
+                </button>
+            </form>
+
+            <div class="status-row">
+                <span class="status-dot-green"></span>
+                ProctorAI system is online and ready
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            btn.classList.add('loading');
+            // Simulate brief connect then redirect to proctoring room
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1200);
+        }
+    </script>
+</body>
+</html>
